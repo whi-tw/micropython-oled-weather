@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Flash oled_weather" type="MicroPythonConfigurationType" factoryName="MicroPython" path="./oled_weather/">
+    <module name="oled-weather" />
+    <method v="2" />
+  </configuration>
+</component>
