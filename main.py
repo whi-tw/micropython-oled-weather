@@ -11,6 +11,7 @@ if not sta_if.isconnected():
     while not sta_if.isconnected():
         pass
 print('network config:', sta_if.ifconfig())
+oled_weather.gui.blit(oled_weather.guicontroller.PBM("wifi"), 117, 1)
 
 loop = asyncio.get_event_loop()
 loop.run_forever()
