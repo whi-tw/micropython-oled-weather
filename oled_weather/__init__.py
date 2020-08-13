@@ -33,15 +33,15 @@ config["wifi_coro"] = wifi_handler
 async def connect_mqtt(client):
     await client.connect()
     while True:
-        await pub_mqtt("status", "status")
+        await pub_mqtt("status", "status", retain=False)
         await asyncio.sleep(10)
 
 
-async def pub_mqtt(topic, value):
+async def pub_mqtt(topic, value, retain=True):
     await mc.publish(
         "{}/{}".format(mqtt_topic, topic).encode("utf-8"),
         str(value).encode("utf-8"),
-        retain=True
+        retain=retain
     )
 
 
