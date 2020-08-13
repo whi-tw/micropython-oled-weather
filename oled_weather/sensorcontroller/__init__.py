@@ -48,10 +48,9 @@ class DallasTempSensor(Sensor):
             for i in range(0, iterations):
                 self.ds_sensor.convert_temp()
                 await asyncio.sleep_ms(750)
-                temp = self.ds_sensor.read_temp(self.serial)
-                total += temp
+                total += self.ds_sensor.read_temp(self.serial)
                 await asyncio.sleep_ms(250)
-            total /= 10
+            total /= iterations
             super(DallasTempSensor, self).update(total)
 
 
@@ -65,11 +64,15 @@ class DHT22Sensor(Sensor):
 
     async def read(self):
         delay_millis = 2000
+        iterations = int(10000/delay_millis)
         while True:
-            self.sensor.measure()
-            value = self.sensor.humidity()
-            super(DHT22Sensor, self).update(value)
-            await asyncio.sleep_ms(delay_millis)
+            total = 0
+            for i in range(0, iterations):
+                self.sensor.measure()
+                total += self.sensor.humidity()
+                await asyncio.sleep_ms(delay_millis)
+            total /= iterations
+            super(DHT22Sensor, self).update(total)
 
 
 class SensorController:
