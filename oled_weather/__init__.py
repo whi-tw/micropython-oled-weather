@@ -1,6 +1,8 @@
 import sys
 import logging
 
+import gc
+
 from machine import Pin, I2C
 import uasyncio as asyncio
 
@@ -14,12 +16,26 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 device_name = "OFFICE"
 mqtt_topic = "home/climate/{}".format(device_name)
 
-mc = MQTTClient(config)
+
+async def wifi_handler(connected):
+    wifi_image = guicontroller.PBM("wifi")
+    if connected:
+        gui.blit(wifi_image, 117, 1)
+    else:
+        gui.fill_rect(117, 1, wifi_image.width, wifi_image.height, 0)
+    del wifi_image
+    gc.collect()
+
+
+config["wifi_coro"] = wifi_handler
+
 
 async def connect_mqtt(client):
     await client.connect()
     while True:
-        await asyncio.sleep(1)
+        await pub_mqtt("status", "status")
+        await asyncio.sleep(10)
+
 
 async def pub_mqtt(topic, value):
     await mc.publish(
@@ -57,6 +73,7 @@ def on_sensor_change(sensor: sensorcontroller.Sensor):
         ))
 
 
+mc = MQTTClient(config)
 gui = guicontroller.GUI(128, 64, I2C(-1, scl=Pin(25), sda=Pin(33)))
 s = sensorcontroller.SensorController(on_sensor_change)
 internal_temp_sensor = s.add_sensor(sensorcontroller.DallasTempSensor, Pin(14), serial=b'(yd\x84\x07\x00\x00\xb3')
