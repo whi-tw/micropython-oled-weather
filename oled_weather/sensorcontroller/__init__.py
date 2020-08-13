@@ -1,15 +1,17 @@
+import dht
+import ds18x20
+import machine
+import onewire
 import uasyncio as asyncio
-
-import onewire, ds18x20, machine
 
 
 class Sensor:
     def __init__(self, serial, on_change):
         self.serial = serial
         self.on_change = on_change
-        self.current_value: float = None
-        self.min_value: float = None
-        self.max_value: float = None
+        self.current_value = None
+        self.min_value = None
+        self.max_value = None
 
     def update(self, data):
         changed = False
@@ -53,9 +55,21 @@ class DallasTempSensor(Sensor):
             super(DallasTempSensor, self).update(total)
 
 
-class HumiditySensor(Sensor):
+class DHT22Sensor(Sensor):
     def __init__(self, serial, pin: machine.Pin, on_change):
-        super(HumiditySensor, self).__init__(serial, on_change)
+        self.pin = pin
+        self.sensor = dht.DHT22(pin)
+        super(DHT22Sensor, self).__init__(serial=serial, on_change=on_change)
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.read())
+
+    async def read(self):
+        delay_millis = 2000
+        while True:
+            self.sensor.measure()
+            value = self.sensor.humidity()
+            super(DHT22Sensor, self).update(value)
+            await asyncio.sleep_ms(delay_millis)
 
 
 class SensorController:
