@@ -5,9 +5,12 @@ import machine
 
 from SSD1306 import SSD1306_I2C
 
+from abutton import Pushbutton
+
 from . import positions, valuebuffer, bufferlib
 
 pbm_dir = "/pbm"
+
 
 
 class PBM(framebuf.FrameBuffer):
@@ -28,6 +31,7 @@ class Numeral(PBM):
 
 class GUI(SSD1306_I2C):
     def __init__(self, width: int, height: int, i2c: machine.I2C):
+        self.on = True
         self.buffer_type = framebuf.MONO_VLSB
         self.width = width
         self.height = height
@@ -35,11 +39,21 @@ class GUI(SSD1306_I2C):
         layout = self.gen_layout()
         self.blit(layout, *positions.get("ORIGIN"))
         self.show()
+        powerbutton = Pushbutton(machine.Pin(23, machine.Pin.IN))
+        powerbutton.press_func(self.toggle_oled)
 
     def set_value(self, value: float, kind: str):
         b = valuebuffer.ValueBuffer(value)
         self.blit(b, *positions.get(kind))
         self.show()
+
+    def toggle_oled(self):
+        if self.on:
+            self.poweroff()
+            self.on = False
+        else:
+            self.poweron()
+            self.on = True
 
     def blit(self, fbuf: framebuf.FrameBuffer, x: int, y: int, key: int = None):
         logging.debug("blitting to {},{}".format(x, y))
