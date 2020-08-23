@@ -38,11 +38,13 @@ async def connect_mqtt(client):
 
 
 async def pub_mqtt(topic, value, retain=True):
+    activity_led.value(1)
     await mc.publish(
         "{}/{}".format(mqtt_topic, topic).encode("utf-8"),
         str(value).encode("utf-8"),
         retain=retain
     )
+    activity_led.value(0)
 
 
 def on_sensor_change(sensor: sensorcontroller.Sensor):
@@ -74,11 +76,14 @@ def on_sensor_change(sensor: sensorcontroller.Sensor):
 
 
 mc = MQTTClient(config)
-gui = guicontroller.GUI(128, 64, I2C(-1, scl=Pin(25), sda=Pin(33)))
+gui = guicontroller.GUI(128, 64, I2C(-1, scl=Pin(25), sda=Pin(33)), Pin(32, Pin.IN))
 s = sensorcontroller.SensorController(on_sensor_change)
 internal_temp_sensor = s.add_sensor(sensorcontroller.DallasTempSensor, Pin(14), serial=b'(yd\x84\x07\x00\x00\xb3')
 external_temp_sensor = s.add_sensor(sensorcontroller.DallasTempSensor, Pin(14), serial=b'(\x84tV\xb5\x01<\xdb')
 internal_humidity_sensor = s.add_sensor(sensorcontroller.DHT22Sensor, Pin(27), serial=b'INTERNAL_HUMIDITY')
+
+activity_led = Pin(2, Pin.OUT)
+activity_led.value(0)
 
 loop = asyncio.get_event_loop()
 try:
