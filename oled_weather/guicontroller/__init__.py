@@ -31,7 +31,7 @@ class Numeral(PBM):
 
 class GUI(SSD1306_I2C):
     def __init__(self, width: int, height: int, i2c: machine.I2C, power_button: machine.Pin):
-        self._on = True
+        self.on = True
         self.buffer_type = framebuf.MONO_VLSB
         self.width = width
         self.height = height
@@ -48,12 +48,12 @@ class GUI(SSD1306_I2C):
         self.show()
 
     def toggle_oled(self):
-        if self._on:
+        if self.on:
             self.poweroff()
-            self._on = False
+            self.on = False
         else:
             self.poweron()
-            self._on = True
+            self.on = True
 
     def blit(self, fbuf: framebuf.FrameBuffer, x: int, y: int, key: int = None):
         logging.debug("blitting to {},{}".format(x, y))
