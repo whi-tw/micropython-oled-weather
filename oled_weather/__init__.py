@@ -9,7 +9,7 @@ import uasyncio as asyncio
 from mqtt_as import MQTTClient
 
 from .config import config
-from . import guicontroller, sensorcontroller
+from . import sensorcontroller, displaymanager
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -18,16 +18,24 @@ mqtt_topic = "home/climate/{}".format(device_name)
 
 
 async def wifi_handler(connected):
-    wifi_image = guicontroller.PBM("wifi")
+    wifi_image = displaymanager.PBM("wifi")
     if connected:
-        gui.blit(wifi_image, 117, 1)
+        displaymanager.blit(wifi_image, 117, 1)
     else:
-        gui.fill_rect(117, 1, wifi_image.width, wifi_image.height, 0)
+        displaymanager.fill_rect(117, 1, wifi_image.width, wifi_image.height, 0)
     del wifi_image
     gc.collect()
 
 
 config["wifi_coro"] = wifi_handler
+
+
+class DataManager:
+    def __init__(self):
+        self.storage = {}
+
+    def get(self):
+        return self.storage
 
 
 async def connect_mqtt(client):
@@ -49,25 +57,27 @@ async def pub_mqtt(topic, value, retain=True):
 
 def on_sensor_change(sensor: sensorcontroller.Sensor):
     if sensor.serial == internal_temp_sensor.serial:
-        gui.set_value(sensor.current_value, "TEMP_IN")
-        gui.set_value(sensor.min_value, "TEMP_MIN")
-        gui.set_value(sensor.max_value, "TEMP_MAX")
+        datamanager.storage["TEMP_IN"] = sensor.current_value
+        datamanager.storage["TEMP_IN_SIMPLE"] = "{:2.0f}C".format(sensor.current_value)
+        datamanager.storage["TEMP_MIN"] = sensor.min_value
+        datamanager.storage["TEMP_MAX"] = sensor.max_value
         loop = asyncio.get_event_loop()
         loop.create_task(pub_mqtt(
             "TEMP/IN/CURRENT",
             sensor.current_value
         ))
     elif sensor.serial == external_temp_sensor.serial:
-        gui.set_value(sensor.current_value, "TEMP_OUT")
+        datamanager.storage["TEMP_OUT"] = sensor.current_value
         loop = asyncio.get_event_loop()
         loop.create_task(pub_mqtt(
             "TEMP/OUT/CURRENT",
             sensor.current_value
         ))
     elif sensor.serial == internal_humidity_sensor.serial:
-        gui.set_value(sensor.current_value, "HUMID_IN")
-        gui.set_value(sensor.min_value, "HUMID_MIN")
-        gui.set_value(sensor.max_value, "HUMID_MAX")
+        datamanager.storage["HUMIDITY_IN"] = sensor.current_value
+        datamanager.storage["HUMIDITY_IN_SIMPLE"] = "{:2.0f}%".format(sensor.current_value)
+        datamanager.storage["HUMIDITY_MIN"] = sensor.min_value
+        datamanager.storage["HUMIDITY_MAX"] = sensor.max_value
         loop = asyncio.get_event_loop()
         loop.create_task(pub_mqtt(
             "HUMIDITY/IN/CURRENT",
@@ -76,7 +86,15 @@ def on_sensor_change(sensor: sensorcontroller.Sensor):
 
 
 mc = MQTTClient(config)
-gui = guicontroller.GUI(128, 64, I2C(-1, scl=Pin(25), sda=Pin(33)), Pin(32, Pin.IN))
+datamanager = DataManager()
+dm = displaymanager.DisplayManager(128, 64, I2C(-1, scl=Pin(25), sda=Pin(33)), Pin(32, Pin.IN), datamanager)
+dm.add_screen(
+    dm.screen_factory(
+        displaymanager.ScreenConfig("overview", {"TEMP_IN_SIMPLE": (19, 38), "HUMIDITY_IN_SIMPLE": (84, 38)})
+    ))
+dm.add_screen(dm.screen_factory(displaymanager.ScreenConfig("detail", {})))
+dm.start()
+
 s = sensorcontroller.SensorController(on_sensor_change)
 internal_temp_sensor = s.add_sensor(sensorcontroller.DallasTempSensor, Pin(14), serial=b'(yd\x84\x07\x00\x00\xb3')
 external_temp_sensor = s.add_sensor(sensorcontroller.DallasTempSensor, Pin(14), serial=b'(\x84tV\xb5\x01<\xdb')
