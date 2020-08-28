@@ -1,8 +1,10 @@
+from collections import namedtuple
+
 import framebuf
 
-import logging
+from .pbm import PBM
 
-from . import bufferlib
+VarLocation = namedtuple("VarLocation", ["x", "y", "alignment", "font"])
 
 
 class ScreenConfig:
@@ -21,7 +23,7 @@ class Screen(framebuf.FrameBuffer):
         self.width = _width
         self.height = _height
         self.config = _config
-        buffer = bytearray(_height // 8 * _width)
+        buffer = bytearray(_height * _width)
         super(Screen, self).__init__(buffer, _width, _height, framebuf.MONO_VLSB)
         if _config.background:
             self.blit(self.config.background, 0, 0)
@@ -31,32 +33,20 @@ class Screen(framebuf.FrameBuffer):
             if key in self.config.vars.keys():
                 # logging.info("printing {} to {} {}".format(value, self.config.vars[key][0], self.config.vars[key][1]))
                 # self.fill_rect(self.config.vars[key][0], self.config.vars[key][1], 8*len(value), 8, 0)
-                x = self.config.vars[key][0]
-                y = self.config.vars[key][1]
-                a = self.config.vars[key][2]
+                x = self.config.vars[key].x
+                y = self.config.vars[key].y
+                a = self.config.vars[key].alignment
                 if a == "l":
                     for i, char in enumerate(value):
-                        bitmap, h, w = self.config.vars[key][3].get_ch(char)
+                        bitmap, h, w = self.config.vars[key].font.get_ch(char)
                         c = framebuf.FrameBuffer(bytearray(bitmap), w, h, framebuf.MONO_HLSB)
                         self.blit(c, x, y)
                         x += w
                         del bitmap, c, h, w
                 elif a == "r":
                     for i, char in reversed(list(enumerate(value))):
-                        bitmap, h, w = self.config.vars[key][3].get_ch(char)
+                        bitmap, h, w = self.config.vars[key].font.get_ch(char)
                         c = framebuf.FrameBuffer(bytearray(bitmap), w, h, framebuf.MONO_HLSB)
-                        self.blit(c, x-w, y)
+                        self.blit(c, x - w, y)
                         x -= w
                         del bitmap, c, h, w
-                # self.text(value, self.config.vars[key][0], self.config.vars[key][1])
-
-
-class PBM(framebuf.FrameBuffer):
-    def __init__(self, file: str):
-        logging.debug("loading pbm from {}".format(file))
-        with open("{}/{}.pbm".format("/pbm", file), 'rb') as f:
-            f.readline()  # Magic number
-            f.readline()  # Creator comment
-            self.width, self.height = [int(v) for v in f.readline().split()]
-            data = bytearray(f.read())
-        super().__init__(data, self.width, self.height, framebuf.MONO_HLSB)

@@ -18,17 +18,15 @@ device_name = "OFFICE"
 mqtt_topic = "home/climate/{}".format(device_name)
 
 
-# async def wifi_handler(connected):
-#     wifi_image = displaymanager.screen.PBM("wifi")
-#     if connected:
-#         displaymanager.blit(wifi_image, 117, 1)
-#     else:
-#         displaymanager.fill_rect(117, 1, wifi_image.width, wifi_image.height, 0)
-#     del wifi_image
-#     gc.collect()
-#
-#
-# config["wifi_coro"] = wifi_handler
+async def wifi_handler(connected):
+    dm.header.set_icon_visible("wifi", connected)
+
+
+async def connect_handler(connected):
+    dm.header.set_icon_visible("cloud", connected)
+
+config["wifi_coro"] = wifi_handler
+config["connect_coro"] = connect_handler
 
 
 async def connect_mqtt(client):
@@ -63,7 +61,6 @@ def format_sensor_val(f, kind=None):
         return "{}%".format(s)
     return s
 
-
 def on_sensor_change(sensor: sensorcontroller.Sensor):
     if sensor.serial == internal_temp_sensor.serial:
         datamanager.storage["TEMP_IN"] = format_sensor_val(sensor.current_value, "temp")
@@ -96,13 +93,17 @@ def on_sensor_change(sensor: sensorcontroller.Sensor):
 
 mc = MQTTClient(config)
 datamanager = displaymanager.DataManager()
-dm = displaymanager.DisplayManager(128, 64, I2C(-1, scl=Pin(25), sda=Pin(33)), Pin(32, Pin.IN), datamanager)
+dm = displaymanager.DisplayManager(128, 64, I2C(-1, scl=Pin(25), sda=Pin(33)), Pin(32, Pin.IN), datamanager, header_height=8)
+dm.set_header("header")
+dm.header.add_icon("wifi", False)
+dm.header.add_icon("cloud", False)
+
 dm.add_screen(
     dm.screen_factory(
         displaymanager.ScreenConfig(
             "overview", {
-                "TEMP_IN_SIMPLE": (6, 27, "l", dogica16_values),
-                "HUMIDITY_IN_SIMPLE": (77, 27, "l", dogica16_values)
+                "TEMP_IN_SIMPLE": displaymanager.screen.VarLocation(6, 31, "l", dogica16_values),
+                "HUMIDITY_IN_SIMPLE": displaymanager.screen.VarLocation(77, 31, "l", dogica16_values)
             }
         )
     ))
@@ -110,13 +111,13 @@ dm.add_screen(
     dm.screen_factory(
         displaymanager.ScreenConfig(
             "detail", {
-                "TEMP_IN": (61, 19, "r", dogica8_values),
-                "TEMP_OUT": (61, 27, "r", dogica8_values),
-                "TEMP_MIN": (61, 35, "r", dogica8_values),
-                "TEMP_MAX": (61, 43, "r", dogica8_values),
-                "HUMIDITY_IN": (128, 19, "r", dogica8_values),
-                "HUMIDITY_MIN": (128, 35, "r", dogica8_values),
-                "HUMIDITY_MAX": (128, 43, "r", dogica8_values)
+                "TEMP_IN": displaymanager.screen.VarLocation(61, 23, "r", dogica8_values),
+                "TEMP_OUT": displaymanager.screen.VarLocation(61, 31, "r", dogica8_values),
+                "TEMP_MIN": displaymanager.screen.VarLocation(61, 39, "r", dogica8_values),
+                "TEMP_MAX": displaymanager.screen.VarLocation(61, 47, "r", dogica8_values),
+                "HUMIDITY_IN": displaymanager.screen.VarLocation(128, 23, "r", dogica8_values),
+                "HUMIDITY_MIN": displaymanager.screen.VarLocation(128, 39, "r", dogica8_values),
+                "HUMIDITY_MAX": displaymanager.screen.VarLocation(128, 47, "r", dogica8_values)
             }
         )
     )
