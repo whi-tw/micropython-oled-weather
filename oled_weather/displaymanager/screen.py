@@ -2,6 +2,8 @@ import framebuf
 
 import logging
 
+from . import bufferlib
+
 
 class ScreenConfig:
     background = None
@@ -27,8 +29,26 @@ class Screen(framebuf.FrameBuffer):
     def update(self, data: dict):
         for key, value in data.items():
             if key in self.config.vars.keys():
-                self.fill_rect(self.config.vars[key][0], self.config.vars[key][1], 8*len(value), 8, 0)
-                self.text(value, self.config.vars[key][0], self.config.vars[key][1])
+                # logging.info("printing {} to {} {}".format(value, self.config.vars[key][0], self.config.vars[key][1]))
+                # self.fill_rect(self.config.vars[key][0], self.config.vars[key][1], 8*len(value), 8, 0)
+                x = self.config.vars[key][0]
+                y = self.config.vars[key][1]
+                a = self.config.vars[key][2]
+                if a == "l":
+                    for i, char in enumerate(value):
+                        bitmap, h, w = self.config.vars[key][3].get_ch(char)
+                        c = framebuf.FrameBuffer(bytearray(bitmap), w, h, framebuf.MONO_HLSB)
+                        self.blit(c, x, y)
+                        x += w
+                        del bitmap, c, h, w
+                elif a == "r":
+                    for i, char in reversed(list(enumerate(value))):
+                        bitmap, h, w = self.config.vars[key][3].get_ch(char)
+                        c = framebuf.FrameBuffer(bytearray(bitmap), w, h, framebuf.MONO_HLSB)
+                        self.blit(c, x-w, y)
+                        x -= w
+                        del bitmap, c, h, w
+                # self.text(value, self.config.vars[key][0], self.config.vars[key][1])
 
 
 class PBM(framebuf.FrameBuffer):

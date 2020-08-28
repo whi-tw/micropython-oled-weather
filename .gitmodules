@@ -1,0 +1,3 @@
+[submodule "util/micropython-font-to-py"]
+	path = util/micropython-font-to-py
+	url = https://github.com/peterhinch/micropython-font-to-py.git

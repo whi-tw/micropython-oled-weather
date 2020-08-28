@@ -10,6 +10,7 @@ from SSD1306 import SSD1306_I2C
 from aswitch import Pushbutton
 
 from .screen import Screen, ScreenConfig
+from .datamanager import DataManager
 
 
 class DisplayManager(SSD1306_I2C):
@@ -17,11 +18,13 @@ class DisplayManager(SSD1306_I2C):
     current_screen = None
     can_transition = False
 
-    def __init__(self, width: int, height: int, i2c: machine.I2C, button: machine.Pin, datamanager):
+    def __init__(self, width: int, height: int, i2c: machine.I2C, button: machine.Pin, datamanager, header_height=12):
         self.on = True
         self.buffer_type = framebuf.MONO_VLSB
         self.width = width
         self.height = height
+        self.header_height = header_height
+        self.body_height = height - header_height
         super().__init__(self.width, self.height, i2c)
         self.show()
         powerbutton = Pushbutton(button, True)
@@ -43,7 +46,7 @@ class DisplayManager(SSD1306_I2C):
         while True:
             if self.on:
                 self.screens[self.current_screen].update(self.datamanager.get())
-                self.blit(self.screens[self.current_screen], 0, 0)
+                self.blit(self.screens[self.current_screen], 0, self.header_height+1)
                 self.show()
             await asyncio.sleep_ms(1000)
 
